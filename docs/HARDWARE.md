@@ -1,3 +1,46 @@
+<!--
+================================================================================
+🔧 docs/HARDWARE.md - Donanım Mimarisi ve Pin Haritaları
+================================================================================
+
+İŞLEV:
+  - 3-bileşen sistem mimarisi (TX kumanda, RX bridge, Orange Cube autopilot)
+  - ESP32-S3 pin tanımları ve harita (SPI, I2C, ADC, GPIO, UART1)
+  - SBUS bağlantı şeması (GPIO43 → Orange Cube)
+  - Voltage divider kalibrasyonu (12V → 3.3V ADC)
+  - Orange Cube RC receiver port bağlantısı
+
+KRİTİK NOKTALAR:
+  ⚠️ SBUS OUTPUT = GPIO43 (UART1_TX, INVERTED, 100kbaud)
+  ⚠️ RF MODÜLÜ = SPI (GPIO10=CS, GPIO12=CLK, GPIO11=MOSI, GPIO13=MISO)
+  ⚠️ OLED SCREEN = I2C (GPIO9=SDA, GPIO8=SCL, addr=0x3C, TX only)
+  ⚠️ VOLTAGE DIV = 27kΩ:10kΩ (oranı 3.64, 1% tolerance!)
+  ⚠️ Orange Cube SBUS IN = RC5433 port PIN1 (GPIO43 bağlanır)
+
+ODAK: YALNIZCA İLETİŞİM KATMANI
+  - RF ↔ SBUS bridge açıklanır
+  - Enerji yönetimi, XL6009, pil detayları HARIÇ
+
+KULLANIM:
+  1. TX pin setup (kumanda kontrolü)
+  2. RX pin setup (RF alıcı + SBUS çıkış)
+  3. Orange Cube bağlantı (SBUS in → servo PWM out)
+
+İLGİLİ DOSYALAR:
+  - shared/config.h → PIN #define değerleri (Source OF TRUTH)
+  - TX/src/main.cpp → Kumanda input oku
+  - RX/src/main.cpp → SBUS output gönder
+  - docs/SBUS_PROTOCOL.md → 25-byte frame format detayı
+  - PROJECT_OVERVIEW.md → Sistem flow ve veri akışı
+
+REFERANS:
+  - SPI Hızı: 10 MHz (SX1280 spec)
+  - I2C Hızı: 100-400 kHz (OLED standard)
+  - ADC Resolution: 12-bit (4095 max)
+  - Orange Cube: Pixhawk 4, STM32F765 CPU
+
+================================================================================
+-->
 # 🔧 Haberleşeme Mimarisi - RF Kumanda Sistemi
 
 **Proje:** 2.4 GHz RF Kumanda (TX → RX → Orange Cube Autopilot)  

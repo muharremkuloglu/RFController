@@ -1,3 +1,46 @@
+// ============================================================================
+// 🎮 TX/src/main.cpp - Kumanda İstasyonu (Pilot Kontrolü)
+// ============================================================================
+//
+// İŞLEV:
+//   - Pilot kumandası: 2 joystick, 3 trim potnasiyometresi, 2 anahtar
+//   - HABERLEŞİM: SX1280 RF modülü (2.4GHz, 50Hz TX rate)
+//   - EKRAN: SSD1306 OLED (0.96", I2C, 8-satır telemetri)
+//   - PAZAR: 8x AA alkaline battery, voltaj ölçümü, signal strength sim
+//
+// FLOW:
+//   1. Joystick/Trim ADC oku (her loop)
+//   2. Anahtar durumlarını oku (GPIO16, GPIO17)
+//   3. Pil voltajını ölçü (GPIO8, ADC → voltage divider)
+//   4. Her 20ms'de ControlPacket gönder (50Hz) → SX1280 → 2.4GHz RF
+//   5. Her 200ms'de OLED güncelle (8-satır bilgi)
+//
+// DISPLAY OUTPUT (8 satır):
+//   TX | BAT:(75%) PKT:234
+//   SIGNAL: -92dBm [====- ] 85%
+//   VOLT: 7.85V | ADC:3892
+//   THR: 512 YAW: 0
+//   ROLL: -12 PITCH:150
+//   SW: [T1] [T2]
+//   MODE: AUTO
+//   STATUS: OK
+//
+// KRİTİK NOKTALAR:
+//   - ⚠️ SPI pinler: CS=GPIO10, RESET=GPIO7, BUSY=GPIO6, DIO1=GPIO5
+//   - ⚠️ I2C pinler: SDA=GPIO9, SCL=GPIO8 (OLED adresi=0x3C)
+//   - ⚠️ RF Rate: EXACTLY 50Hz (20ms aralıklar), hata tolerance düşük
+//   - ⚠️ Voltage divider oranı: 3.64 (27k:10k, hata ±1% tolerance)
+//   - ⚠️ Signal strength simulasyon: -95 ~ -80 dBm (gerçek değil, placeholder)
+//
+// İLGİLİ DOSYALAR:
+//   - shared/config.h         → PIN tanımları
+//   - docs/HARDWARE.md        → TX pin haritası
+//   - docs/protocol.md        → ControlPacket format
+//   - TX/lib/config/config.h  → TX-specific ayarlar (şu an boş)
+//   - RX/src/main.cpp         → RF paket alıcı
+//
+// ============================================================================
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h>

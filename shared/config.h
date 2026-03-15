@@ -1,3 +1,32 @@
+// ============================================================================
+// ⚙️ shared/config.h - ESP32-S3 Pin Tanımları ve Konfigürasyonlar (ORTAK)
+// ============================================================================
+//
+// İŞLEV:
+//   - TX ve RX tarafının AYNI PIN tanımlarını içerir
+//   - Her PIN değişikliğinde HER İKİ taraf senkron kalır
+//   - Kalibrasyon sabitleri (voltage divider, ADC ranges, RF params)
+//
+// KRİTİK NOKTALAR:
+//   - ⚠️ Bu dosya TX ve RX tarafında KOPYALANMIŞ, değişim manuel senkron lazım
+//   - GPIO10=CS, GPIO12=CLK, GPIO11=MOSI, GPIO13=MISO (SPI)
+//   - GPIO9=SDA, GPIO8=SCL (I2C/OLED)
+//   - GPIO1-4 = Joystick ADC (4 eksen)
+//   - GPIO40-42 = Trim potansiyometreleri ADC
+//   - GPIO43 = RX UART1 TX (SBUS output, INVERTED!)
+//   - VOLTAGE_DIVIDER = 3.64 (27kΩ:10kΩ oranı, 12V → 3.3V ADC)
+//
+// KULLANIM:
+//   #include "config.h"  → TX/src/main.cpp ve RX/src/main.cpp
+//
+// İLGİLİ DOSYALAR:
+//   - TX/src/main.cpp   → Kumanda girdileri (joystick, potlar, switchler)
+//   - RX/src/main.cpp   → SBUS çıkışı ve servo PWM
+//   - docs/HARDWARE.md  → Pin haritası referansı
+//   - docs/SBUS_PROTOCOL.md → UART1/GPIO43 detayları
+//
+// ============================================================================
+
 #ifndef CONFIG_H
 #define CONFIG_H
 

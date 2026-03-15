@@ -1,3 +1,39 @@
+<!--
+================================================================================
+🎯 docs/calibration.md - Kumanda Kalibrasyon Prosedürleri
+================================================================================
+
+İŞLEV:
+  - Joystick neutral point kalibrasyonu
+  - Trim potansiyometre offset ayarlaması
+  - Voltage divider kalibrasyonu (12V → ADC)
+  - Signal strength kalibrasyonu
+
+NEDEN ÖNEMLİ:
+  - ADC ölçümleri fabrika hatasız, offset fazla
+  - Joystick neutral (0,0) hesaplayıp sakla
+  - Voltage calibrationu multimetre ile doğrula (error < ±1%)
+  - Signal simulation → gerçek RSSI ölçümüne dönüştür
+
+PROSEDÜR:
+  1. TX kumandayı açık kalibrasyon moduna al
+  2. Joystick neutral pozisyonda sabit tut (UART log oku → offset kaydet)
+  3. Potlar merkez pozisyonda (ADC value = ~2048)
+  4. Multimetre ile gerçek voltaj ölç vs. ADC karşılaştır
+  5. Hata varsa VOLTAGE_DIVIDER sabiti ayarla
+
+TEST:
+  - Serial monitor: pio run -e tx -t monitor
+  - Joystick values, ADC, voltage, signal görünecek
+
+İLGİLİ DOSYALAR:
+  - shared/config.h → VOLTAGE_DIVIDER = 3.64
+  - TX/src/main.cpp → readJoysticks(), readPotentiometers() fonks.
+  - docs/HARDWARE.md → Voltage divider şeması
+
+================================================================================ 
+-->
+
 # Kalibrasyonu Rehberi
 
 ## Potansiyometre Kalibrasyonu

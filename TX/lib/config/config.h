@@ -1,5 +1,38 @@
+// ============================================================================
+// ⚠️ TX/lib/config/config.h - TX-SPECIFIC KONFIGÜRASYONLAR
+// ============================================================================
+//
+// ⚠️ ÖNEMLİ: Bu dosya DEPRECATED! shared/config.h kullan!
+//
+// İŞLEV:
+//   - TX-specific ayarlar (şu an boş)
+//   - ORTAK ayarlar için → shared/config.h include et
+//
+// DURUM:
+//   - shared/config.h zaten TÜM pinleri tanımlıyor (TX + RX)
+//   - Bu dosya gelecekte TX-only ayarlar için ayrılmış (vb: max TX power)
+//
+// PROBLEMLER:
+//   ⚠️ Şu an shared/config.h'nin KOPYASI (DUPLICATE CODE!)
+//   ⚠️ Değişim bir yerde yapılırsa diğer iki yerde senkron kaybı
+//   ⚠️ Refactoring lazım: TX/lib/config/config.h silip shared/config.h use
+//
+// DOĞRU KULLANIM:
+//   TX/src/main.cpp'de:
+//   #include "../../../shared/config.h"  // ORTAK pinler
+//   #include "config.h"                  // TX-specific (varsa)
+//
+// İLGİLİ DOSYALAR:
+//   - shared/config.h    → MASTER SOURCE (ortak pinler)
+//   - RX/lib/config/config.h → RX version (duplicate)
+//
+// ============================================================================
+
 #ifndef CONFIG_H
 #define CONFIG_H
+
+// ⚠️ UYARI: Aşağıdaki ayarlar deprecated ve shared/config.h'de de var!
+// Değişim yaparsan HER İKİ yerde yap veya shared/config.h'yi include et
 
 // ============ SPI PİNLERİ (SX1280 RF Modülü) ============
 #define SX1280_NSS   10     // Chip Select (CS)

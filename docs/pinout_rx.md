@@ -1,3 +1,37 @@
+<!--
+================================================================================
+📍 docs/pinout_rx.md - RX (RF Bridge) ESP32-S3 Pin Tanımlamaları
+================================================================================
+
+İŞLEV:
+  - RX RF bridge'nin ESP32-S3 pin haritası
+  - SPI (RF), UART1 (SBUS output), GPIO (status LED) pin detayı
+
+ÖNEMLİ NOT:
+  - Şu dosya: shared/config.h'de de tanımlanıyor (DUPLICATE!)
+  - SOURCE OF TRUTH: shared/config.h
+  - Değişim yapıyorsan: her ikisini güncelle VEYA shared/config.h'yi include et
+
+PIN ÖZET:
+  SPI: CS=10, RST=7, BUSY=6, DIO1=5, MOSI=11, MISO=13, CLK=12
+  UART1: TX=43, RX=44 (RX kullanmıyoruz, TX INVERTED SBUS)
+  GPIO LED: 15 (status indicator)
+  PWM Servo: 11,12,13,14,35,36,37 (RX servo backup, optional)
+
+KRITIK: GPIO43 = SBUS_TX
+  - 100kbaud baudrate (exact!)
+  - INVERTED UART (idle=LOW, active=HIGH)
+  - ESP32 UART1 register setup: uart_set_line_inverse()
+
+İLGİLİ DOSYALAR:
+  - shared/config.h → MASTER SOURCE
+  - docs/HARDWARE.md → Daha detaylı (table format)
+  - docs/SBUS_PROTOCOL.md → GPIO43 UART1 setup kodu
+  - RX/src/main.cpp → UART1 initialization (yapılacak)
+
+================================================================================ 
+-->
+
 # Pin Tanımlamaları - RX (İHA Alıcısı)
 
 ## Donanım Özeti

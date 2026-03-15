@@ -1,3 +1,32 @@
+<!--
+================================================================================
+📍 docs/pinout.md - TX (Kumanda) ESP32-S3 Pin Tanımlamaları
+================================================================================
+
+İŞLEV:
+  - TX kumanda istasyonunun ESP32-S3 pin haritası
+  - SPI (RF), I2C (OLED), ADC (Joystick/Trim), GPIO (Switch) pin detayı
+
+ÖNEMLİ NOT:
+  - Şu dosya: shared/config.h'de de tanımlanıyor (DUPLICATE!)
+  - SOURCE OF TRUTH: shared/config.h
+  - Değişim yapıyorsan: her ikisini güncelle VEYA shared/config.h'yi include et
+
+PIN ÖZET:
+  SPI: CS=10, RST=7, BUSY=6, DIO1=5, MOSI=11, MISO=13, CLK=12
+  I2C: SDA=9, SCL=8 (OLED addr=0x3C)
+  ADC Joystick: 1,2,3,4
+  ADC Trim: 42,41,40
+  GPIO Switch: 16,17
+
+İLGİLİ DOSYALAR:
+  - shared/config.h → MASTER SOURCE
+  - docs/HARDWARE.md → Daha detaylı (table format)
+  - platformio.ini → Build config
+
+================================================================================ 
+-->
+
 # Pin Tanımlamaları - TX Kumanda İstasyonu
 
 ## Donanım Özeti

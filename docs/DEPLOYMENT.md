@@ -1,3 +1,53 @@
+<!--
+================================================================================
+🚀 docs/DEPLOYMENT.md - Sistem Dağıtım ve Test Rehberi
+================================================================================
+
+İŞLEV:
+  - TX + RX sisteminin bütün olarak nasıl kurulacağı
+  - Montaj adımları (kumanda kasa, RX modülü, Orange Cube)
+  - Test prosedürleri (RF link, SBUS, servo response)
+  - Troubleshooting checklist
+
+FLOW:
+  1. TX kumanda monte ve test
+  2. RX bridge monte ve test
+  3. Orange Cube entegrasyon
+  4. QGroundControl RC channels verification
+  5. Uçak simulatoru veya benchtop test
+
+TX DEPLOYMENT:
+  - ESP32-S3 + SX1280 solder/breadboard
+  - OLED ekranı I2C'ye bağla
+  - Joystick ve trim potlar ADC'ye bağla
+  - Anahtarlar GPIO'ya bağla
+  - 8x AA battery holder + XL6009 (12V → 3.3V)
+  - pio run -e tx --target upload
+
+RX DEPLOYMENT:
+  - ESP32-S3 + SX1280 solder/breadboard
+  - GPIO43 → SBUS cable → Orange Cube RC5433 port
+  - Status LED (GPIO15) optional
+  - pio run -e rx --target upload
+
+ORANGE CUBE TEST:
+  - SBUS IN bağlantısını kontrol et
+  - Pilot mode: manual + RX input
+  - QGroundControl: Analyze → RC_CHANNELS_RAW gözlemle
+  - 4 ana kanal (throttle, yaw, roll, pitch) görülüyor mu?
+
+SONRAKI ADIM:
+  - Bench test → Servo motor mock
+  - Field test → Gerçek uçakta pilot
+
+İLGİLİ DOSYALAR:
+  - docs/HARDWARE.md → Bağlantı şemaları
+  - docs/SBUS_PROTOCOL.md → UART inversion setup
+  - PROJECT_OVERVIEW.md → Veri akışı
+
+================================================================================
+-->
+
 # Dağıtım ve Test Rehberi
 
 ## ✅ Montaj Sonrası Kontrol Listesi

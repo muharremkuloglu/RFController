@@ -1,3 +1,71 @@
+<!--
+================================================================================
+📋 PROJECT_OVERVIEW.md - RF KUMANDA SİSTEMİ KAPSAMLI REHBER
+================================================================================
+
+⭐⭐⭐ BAŞLANGIÇ NOKTASI - BURADAN BAŞLA! ⭐⭐⭐
+
+İŞLEV:
+  - Bütün projenin kapsamlı açıklaması
+  - 13 bölümde sistem mimarisi, dosya yapısı, veri akışı
+  - Her dosyanın ne işi yaptığı ADETİ ADETİNE açıklandı
+  - Yapılan işler, eksik kodlar, sonraki adımlar
+
+OKUMA SIRASI (Tüm Başlayanlar İçin):
+  1. "Proje Amacı" bölümü (sistem nedir?)
+  2. "Dosya Yapısı" bölümü (hangi dosya nerede ne yapıyor?)
+  3. "Veri Akışı" bölümü (kumanda → RF → SBUS → uçak)
+  4. "KRİTİK NOKTALAR" bölümü (nelere dikkat et?)
+  5. "Yapılan İşler" bölümü (neler bitmiş, neler yapılacak?)
+  6. Diğer dosyaları oku (detailed referans)
+
+DOSYA HARITASI (HIZLI İŞARET):
+  platformio.ini          → Build config (tx/rx targets)
+  shared/config.h         → PIN tanımları (ORTAK, SOURCE OF TRUTH)
+  TX/src/main.cpp         → Kumanda yazılımı (tamamlandı)
+  RX/src/main.cpp         → SBUS bridge (eksik SBUS encoder)
+  TX/lib/config/config.h  → Deprecated duplicate
+  RX/lib/config/config.h  → Deprecated duplicate
+  
+DOKÜMANTASYON (Referans):
+  docs/HARDWARE.md        → Pin haritaları, 3-bileşen sistem
+  docs/SBUS_PROTOCOL.md   → 25-byte frame detayı, 100kbaud
+  docs/protocol.md        → ControlPacket (32 byte RF format)
+  docs/calibration.md     → Kalibrasyon prosedürleri
+  docs/DEPLOYMENT.md      → Deployment talimatları
+
+KRİTİK NOKTALAR (Özet):
+  1. SBUS = Inverted UART (GPIO43, 100kbaud, normal TTL değil)
+  2. 11-bit Channel Encoding = kompleks bit packing (22 byte data)
+  3. Voltage divider = 3.64 oranı (27k:10k, ±1% tolerance)
+  4. TX Rate = 50Hz, RX SBUS Rate = 25Hz (farklı!)
+
+ÖNEMLİ UYARI:
+  ⚠️ TX/lib/config/config.h ve RX/lib/config/config.h DEPRECATED
+  ⚠️ shared/config.h kullan (MASTER SOURCE)
+  ⚠️ Duplicate code bugü var, refactoring lazım
+
+VERSİYON:
+  - Platform: ESP32-S3-N16R8 (240MHz, 16MB Flash, 8MB PSRAM)
+  - Build: platformio.ini (tx/rx environments)
+  - Dil: C++ (Arduino Framework)
+  - Status: Aktif geliştirme (RX SBUS bridge kodu yapılıyor)
+
+HEDEFİNİZ NE İSE:
+  → TX kumanda kullanmak: TX/src/main.cpp oku
+  → RX bridge test: RX/src/main.cpp oku (SBUS encoder eklenecek)
+  → Orange Cube bağlantı: HARDWARE.md + SBUS_PROTOCOL.md oku
+  → Sorun çözme: "KRİTİK NOKTALAR" + "ARAŞTIRMA ÖNERİLERİ" oku
+
+HATA YAPMADAN:
+  ✅ Değişim yap: shared/config.h (SOURCE OF TRUTH)
+  ❌ Değişim yapma: TX/lib/config/config.h veya RX/lib/config/config.h
+  ✅ SBUS sorunları: docs/SBUS_PROTOCOL.md troubleshooting
+  ❌ Tahmin etme: kod referans dökümantasyon'da yazılı
+
+================================================================================
+-->
+
 # 📋 RF Kumanda Sistemi - Proje Özet Rehberi
 
 **Proje Başlama Tarihi:** Devam Ediyor  

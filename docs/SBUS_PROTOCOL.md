@@ -1,3 +1,50 @@
+<!-- 
+================================================================================
+📡 docs/SBUS_PROTOCOL.md - SBUS Protokolü Tam Referansı
+================================================================================
+
+İŞLEV:
+  - SBUS protokolünün 100kbaud inverted UART detaylı açıklaması
+  - 25-byte frame format analizi (0x0F start, 16×11-bit channels, 0x00 end)
+  - C++ encoder/decoder kod örnekleri
+  - Orange Cube RC5433 SBUS receiver hardware bağlantı
+  - QGroundControl verification prosedürü
+  - Sorun giderme rehberi
+
+KRİTİK NOKTALAR:
+  ⚠️ SBUS = Inverted UART (TTL'den farklı!)
+     - Normal TTL: Idle=HIGH (3.3V), Active=LOW (0V)
+     - SBUS: Idle=LOW (0V), Active=HIGH (3.3V)
+     - Solution: uart_set_line_inverse(UART_NUM_1, UART_INVERSE_TXD)
+  
+  ⚠️ 100kbaud = 100,000 bps (NON-STANDARD!)
+     - Çoğu işlem 9600 / 115200 kullanır
+     - SBUS standartı = EXACTLY 100,000 bps
+     - Solution: Serial1.begin(100000, SERIAL_8E2, -1, 43)
+  
+  ⚠️ 11-bit Channel Encoding = KOMPLEKS bit packing
+     - 16 kanal × 11-bit = 176 bits = 22 bytes
+     - Her kanal 0-2047 aralığında (11-bit resolution)
+     - Bit order: LSB first (little-endian)
+     - Solution: encodeSBUSFrame() fonksiyonu RX/src/main.cpp'de yazılmalı
+
+KULLANIM:
+  - RX/src/main.cpp: ControlPacket → encodeSBUSFrame() → GPIO43 UART1
+
+İLGİLİ DOSYALAR:
+  - RX/src/main.cpp  → SBUS encoder/sender implementasyonu yapılacak
+  - shared/config.h  → GPIO43 = SBUS_TX pin tanımı
+  - docs/HARDWARE.md → Orange Cube bağlantı şeması
+  - PROJECT_OVERVIEW.md → Proje mimarisi ve veri akışı
+
+REFERANS:
+  - SBUS official spec: https://www.futabasusa.com/technology/sbus
+  - Orange Cube SBUS input: RC5433 connector PIN1=SBUS, PIN2=GND
+  - QGroundControl: Analyze → MAVLink Inspector → RC_CHANNELS_RAW
+
+================================================================================
+-->
+
 # 📡 SBUS Protokolü - ESP32-RX → Orange Cube
 
 ## Genel Bakış

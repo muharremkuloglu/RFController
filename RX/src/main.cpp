@@ -1,3 +1,53 @@
+// ============================================================================
+// 🛰️ RX/src/main.cpp - RF-SBUS BRIDGE (İHA'ya Monte Edilen Alıcı)
+// ============================================================================
+//
+// İŞLEV:
+//   - SX1280 RF modülü ile 2.4GHz paketleri KONTINYU AL
+//   - ControlPacket'ı SBUS protokolüne dönüştür
+//   - UART1 / GPIO43 üzerinden Orange Cube autopilot'a gönder (100kbaud, INVERTED!)
+//   - Status LED blink (RF bağlantı göstergesi)
+//
+// FLOW:
+//   1. SX1280 RX mode'da başlat (kontinyu duş)
+//   2. Interrupt (GPIO5=DIO1) yla paket alındığında işle
+//   3. ControlPacket struct'ı parse et
+//   4. Her 40ms'de SBUS frame oluştur (25Hz rate)
+//   5. GPIO43 (UART1_TX) → INVERTED UART → Orange Cube SBUS IN
+//   6. Signal loss detect (500ms timeout → failsafe flag)
+//
+// SBUS FRAME FORMAT (25 byte):
+//   [0]    = 0x0F (start byte)
+//   [1-22] = 16 channel × 11-bit data (176 bits, complex bit packing)
+//   [23]   = 0x00 (flags/status)
+//   [24]   = 0x00 (end byte)
+//   Baudrate: 100,000 bps (100 kbaud - NON-STANDARD!)
+//   Format: SERIAL_8E2 (8 data, Even parity, 2 stop)
+//   Signal: INVERTED (idle=LOW, active=HIGH) ← KRITIK!
+//
+// KRİTİK NOKTALAR:
+//   ⚠️ GPIO43 UART1_TX INVERTED olMALI:
+//      uart_set_line_inverse(UART_NUM_1, UART_INVERSE_TXD);
+//   ⚠️ 100kbaud = 100,000 bps (not 115200!) → timing hassas
+//   ⚠️ 11-bit channel encoding = kompleks bit packing
+//   ⚠️ SBUS rate = 25Hz ANCAK TX rate = 50Hz (farklı!)
+//   ⚠️ Signal loss timeout = 500ms → failsafe flag set
+//
+// EKSIK KODLAR (⚠️ YAPILACAK):
+//   - encodeSBUSFrame() fonksiyonu tamamlanmadı
+//   - sendSBUSFrame() UART1 implementasyonu eksik
+//   - uart_set_line_inverse() setup kodu dikkatle test lazım
+//   - Servo PWM backup mode (analog PWM if UART fails)
+//
+// İLGİLİ DOSYALAR:
+//   - shared/config.h          → PIN tanımları (especially GPIO43)
+//   - docs/HARDWARE.md         → RX pin haritası, Orange Cube bağlantı
+//   - docs/SBUS_PROTOCOL.md    → 25-byte frame encode/decode örnekleri
+//   - TX/src/main.cpp          → RF sender (ControlPacket source)
+//   - RX/lib/config/config.h   → RX-specific ayarlar (şu an boş)
+//
+// ============================================================================
+
 #include <Arduino.h>
 #include <SPI.h>
 #include "config.h"

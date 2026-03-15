@@ -1,3 +1,51 @@
+<!--
+================================================================================
+📖 README.md - PROJE AÇIKLAMA VE HIZLI BAŞLANGIÇ
+================================================================================
+
+İŞLEV:
+  - Proje tanıtımı (2.4GHz RF kumanda sistemi)
+  - Hızlı başlangıç rehberi
+  - Donanım listesi
+  - Build ve deploy talimatları
+  - Troubleshooting ipuçları
+
+BAŞLANGIÇ:
+  1. PROJECT_OVERVIEW.md oku (Tam sistem açıklaması)
+  2. docs/HARDWARE.md kontrol et (Pin haritası)
+  3. shared/config.h'yi incele (PIN tanımları)
+  4. TX/src/main.cpp ve RX/src/main.cpp oku
+  5. Build et: pio run -e tx --target upload
+  6. Test et: pio run -e tx -t monitor
+
+PROJE YAPISI:
+  - TX/          → Kumanda istasyonu (pilot kontrol)
+  - RX/          → RF bridge (İHA'ya monte)
+  - shared/      → ORTAK dosyalar (PIN definitions)
+  - docs/        → Referans dokümantasyon
+  - platformio.ini → Build konfigürasyonu
+
+DOKÜMANTASYON HİYERARŞİSİ:
+  1. PROJECT_OVERVIEW.md (yaş İLK buradan başla)
+  2. README.md (bu dosya - hızlı start)
+  3. HARDWARE.md (pin haritaları)
+  4. SBUS_PROTOCOL.md (UART detayları)
+  5. protocol.md (RF paket format)
+
+VERSİYON:
+  - PlatformIO: Latest
+  - Arduino Framework: Arduino-ESP32 Latest
+  - ESP32 Target: esp32-s3-devkitc-1 (ESP32-S3-N16R8)
+  - Python venv: .venv/ (Activated)
+
+SORUNLAR:
+  → docs/SBUS_PROTOCOL.md → Troubleshooting section
+  → docs/calibration.md   → Kalibrasyon problemleri
+  → PROJECT_OVERVIEW.md   → Araştırma önerileri
+
+================================================================================ 
+-->
+
 # RF Kumanda Sistemi (RFController) 🚁
 
 **Savaşan İHA Projesi için 2.4 GHz RF Kontrol Sistemi**  
