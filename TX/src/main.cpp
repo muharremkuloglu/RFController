@@ -2,8 +2,8 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
-#include "../../shared/config.h"
-#include "../../shared/protocol.h"
+#include "config.h"
+#include "protocol.h"
 
 // ============ GLOBALS ============
 // Ekran
