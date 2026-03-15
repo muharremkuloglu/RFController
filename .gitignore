@@ -1,0 +1,29 @@
+# PlatformIO
+.pio
+.pioenvs
+.piolibdeps
+*.code-workspace
+
+# Arduino
+.vscode
+*.elf
+*.hex
+*.eep
+*.o
+*.a
+
+# IDE
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+
+# Build
+build/
+dist/
+bin/
+
+# Misc
+*.log
+*.out
