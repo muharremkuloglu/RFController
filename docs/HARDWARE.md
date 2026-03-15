@@ -1,72 +1,46 @@
-# 🔧 Donanım Şeması - RF Kumanda Sistemi
+# 🔧 Haberleşeme Mimarisi - RF Kumanda Sistemi
 
-**Proje:** Savaşan İHA için 2.4 GHz RF Kumanda Sistemi  
-**Kumanda (TX):** ESP32-S3-N16R8 + SX1280 RF + OLED  
-**Uçak (RX) - Ana Bilgisayar:** Pixhawk 4 Orange Cube (Autopilot)  
-**Uçak (RX) - Görüş:** NVIDIA Jetson Nano Orin (AI/Vision)  
-**Uçak (RX) - RF Bridge:** ESP32-S3-N16R8 + SX1280 → SBUS  
-**Enerji Kaynağı:** 8x AA Alkaline (12V, Kumanda)
+**Proje:** 2.4 GHz RF Kumanda (TX → RX → Orange Cube Autopilot)  
+**Odak:** SADECE İletişim Katmanı (RF ↔ SBUS bridge)
 
 ---
 
-## 📌 Cihaz Bloğu (Block Diagram)
+## � Sistem Mimarisi (3-Bileşen)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    KUMANDA İSTASYONU (TX)                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │            ESP32-S3-N16R8 (240 MHz)                 │  │
-│  │          16MB Flash, 8MB PSRAM (Dual-Core)          │  │
-│  └──────────────────────────────────────────────────────┘  │
-│          ↑           ↑           ↑           ↑              │
-│         SPI         I2C        GPIO        ADC              │
-│          │           │          │           │              │
-│    ┌─────┴─────┐ ┌──┴──┐  ┌─────┴──┐  ┌────┴─────┐       │
-│    │ SX1280    │ │OLED │  │Switches│  │Joysticks │       │
-│    │  2.4GHz   │ │0.96"│  │ 2x    │  │ 2x      │       │
-│    │ PA+LNA    │ │ LCD │  │        │  │         │       │
-│    │ +20 dBm   │ │ I2C │  │GPIO16:17│ │GPIO1-4 │       │
-│    └─────┬─────┘ └─────┘  └────────┘  └────────┘       │
-│          │                                                  │
-│      RF Antenna                                            │
-│      @ 2.4 GHz                                            │
-│                                                              │
-│  Trim POT Girişleri (ADC):                                │
-│  ├─ GPIO42: Roll Trim                                    │
-│  ├─ GPIO41: Pitch Trim                                   │
-│  ├─ GPIO40: Yaw Trim                                     │
-│  └─ GPIO8: Pil Voltajı Sensörü                          │
-│                                                              │
-│  Enerji: 2S LiPo (7.4-8.4V) → 5V/3.3V Step-down         │
-└─────────────────────────────────────────────────────────────┘
-                        ↓ RF Signal ↓
-┌─────────────────────────────────────────────────────────────┐
-│                      İHA ALICISI (RX)                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │            ESP32-S3-N16R8 (240 MHz)                 │  │
-│  │          16MB Flash, 8MB PSRAM (Dual-Core)          │  │
-│  └──────────────────────────────────────────────────────┘  │
-│          ↑              ↑                                    │
-│         SPI            PWM                                  │
-│          │              │                                    │
-│    ┌─────┴─────┐   ┌────┴──────────────────┐              │
-│    │ SX1280    │   │ Servo Motor Çıkışları │              │
-│    │  2.4GHz   │   │  7x PWM Ch (GPIO11-14 │              │
-│    │ PA+LNA    │   │        35-37)         │              │
-│    │ +20 dBm   │   │                        │              │
-│    └─────┬─────┘   └────────┬───────────────┘              │
-│          │                  │                                │
-│      RF Antenna        Throttle, Pitch, Roll,             │
-│      @ 2.4 GHz       Yaw, Aux1, Aux2, Aux3               │
-│                                                              │
-│  Status LED: GPIO15 (Durum göstergesi)                    │
-│  Enerji: Pil kutusundan (LiPo)                           │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────┐
+│  KUMANDA İSTASYONU (TX)  │
+│  ESP32-S3 + SX1280 RF    │
+│  + OLED + Joysticks      │
+│  + 2x AA Batteries       │
+└────────────┬─────────────┘
+             │
+      [2.4GHz RF Link]
+      [50Hz LoRa Packets]  
+             │
+  ┌──────────▼────────────┐
+  │   RX RF BRIDGE        │
+  │  ESP32-S3 + SX1280    │
+  │  (GPIO43 UART1_TX)    │
+  └──────────┬────────────┘
+             │
+   [100kbaud Inverted UART]
+             │
+  ┌──────────▼──────────────┐
+  │ ORANGE CUBE (Pixhawk 4) │
+  │ SBUS IN → 14 PWM Out    │
+  └─────────────────────────┘
+             │ (opsiyonel)
+  ┌──────────▼──────────────┐
+  │  NVIDIA Jetson Nano     │
+  │  (MAVLink telemetry)    │
+  └─────────────────────────┘
 ```
+
+**Veri Akışı:**
+1. TX: Joystick input → SX1280 RF paket (50Hz, 2.4GHz)
+2. RX: SX1280 receive → SBUS frame encoder (25Hz)
+3. Orange Cube: SBUS IN → 14 PWM servo outputs
 
 ---
 
@@ -110,24 +84,11 @@
 #### ADC Girişleri - Pil Voltajı
 | Kanal | Pin # | Fonksiyon | Açıklama |
 |-------|-------|-----------|----------|
-| BATT_SENSE | GPIO 8 | Voltaj Ölçümü | Gerilim Bölücü (2.0x) |
-
-#### GPIO - Anahtarlar
-| Fonksiyon | Pin # | Tip | Açıklama |
-|-----------|-------|-----|----------|
-| FLIGHT_MODE | GPIO 16 | Dijital Input | AUTO ↔ FBWA Geçişi |
-| TRIM_LOCK | GPIO 17 | Dijital Input | Trim Kilidi (Yanlışlıkla Değişimi Engelle) |
-
-#### Güç Kaynağı
-| Pin | Voltaj | Akım | Açıklama |
-|-----|--------|------|----------|
-| VCC | 3.3V | 500mA (max) | ESP32-S3 Beslemesi |
-| GND | 0V | - | Referans |
-| VBAT (opsiyonel) | 5V | 1A (max) | Harici Cihazlar |
+| BATT_SENSE | GPIO 8 | Voltaj Ölçümü | (Kullanıcının beslemesi) |
 
 ---
 
-### **RX (İHA Alıcısı) - ESP32-S3 Pinleri**
+### **RX (RF Bridge) - ESP32-S3 Pinleri (Orange Cube & Jetson Interface)**
 
 #### SPI Arayüzü (SX1280 RF Modülü)
 *TX ile aynı*
@@ -142,134 +103,85 @@
 | MISO | GPIO 13 | Master In Slave Out |
 | CLK/SCK | GPIO 12 | SPI Clock (10 MHz) |
 
-#### PWM Çıkışları - Servo Kanalları (7 Kanal)
-| Kanal # | Pin # | Fonksiyon | Min PWM | Max PWM | Merkez |
-|---------|-------|-----------|---------|---------|--------|
-| CH1 | GPIO 14 | Throttle/Motor | 1000 µs | 2000 µs | 1500 µs |
-| CH2 | GPIO 13 | Yaw/Rudder | 1000 µs | 2000 µs | 1500 µs |
-| CH3 | GPIO 12 | Roll/Aileron | 1000 µs | 2000 µs | 1500 µs |
-| CH4 | GPIO 11 | Pitch/Elevator | 1000 µs | 2000 µs | 1500 µs |
-| CH5 | GPIO 37 | Auxiliary 1 | 1000 µs | 2000 µs | 1500 µs |
-| CH6 | GPIO 36 | Auxiliary 2 | 1000 µs | 2000 µs | 1500 µs |
-| CH7 | GPIO 35 | Auxiliary 3 | 1000 µs | 2000 µs | 1500 µs |
+#### SBUS UART Çıkışı (→ Orange Cube)
+| Fonksiyon | Pin # | Açıklama |
+|-----------|-------|----------|
+| SBUS_TX | GPIO 43 | UART1 TX → Orange Cube SBUS IN |
+| GND | GND | Signal Ground (Referans) |
 
-#### GPIO - Durum ve İndikatorler
+**SBUS Protokolü Özellikleri:**
+- Baudrate: **100kbps** (100000)
+- Data Bits: 8
+- Stop Bits: 2
+- Parity: Even (SERIAL_8E2)
+- **İnverted:** Evet (serial signal ters)
+- Frame Rate: 25Hz (40ms/frame)
+- Start Byte: 0x0F
+- End Byte: 0x00
+- 16 kanal PWM emulasyonu (11-bit resolution)
+
+#### GPIO - Status & Debug
 | Fonksiyon | Pin # | Tip | Açıklama |
 |-----------|-------|-----|----------|
-| STATUS_LED | GPIO 15 | Çıkış (LED) | Durum göstergesi (Hızlı blink = hata) |
-| GND | GND | Referans | RF iletişim hassas GND |
+| STATUS_LED | GPIO 15 | Output | RF bağlantı göstergesi |
 
 ---
 
-## 🔋 Enerji Yönetimi - 8x AA Alkaline (12V Sistem)
+### **Orange Cube (Pixhawk 4) Bağlantı**
 
-### Kumanda İstasyonu (TX)
+| Orange Cube Pin | Fonksiyon | ESP32-S3 Bağlantısı |
+|-----------------|-----------|-------------------|
+| SBUS IN | RX Signal | GPIO 43 (SBUS_TX) |
+| GND | Ground | GND |
+| VCC (5V) | Power (opsiyonel) | Harici 5V kaynağından |
 
-```
-8x AA Alkaline Batarya (12V nominal)
-    ↓
-[Step-down Konverter: 12V → 5V/3.3V]
-    ├─→ ESP32-S3 (3.3V @ 500mA)
-    ├─→ SX1280 RF Modülü (3.3V @ 300mA peak TX sırasında)
-    ├─→ OLED Ekran (3.3V @ 20mA)
-    ├─→ Joystickler & Potansiyometreler (3.3V @ 10mA)
-    └─→ Anahtarlar (3.3V @ 5mA)
+**NOT:** SBUS inverted UART sinyalini kabul eder. Standart TTL UART uyumsuz!
 
-Gerilim Bölücü (Battery Monitoring):
-- R1 = 27kΩ, R2 = 10kΩ → GPIO8 (ADC)
-- 12V giriş → 3.24V ADC → 4023 okuması
+---
 
-AA Alkaline Özellikleri:
-- Nominal: 1.5V/cell
-- 8x seri = 12.0V nominal
-- Boş voltaj: 0.9V/cell = 7.2V total
-- Uyarı seviyesi: 1.0V/cell = 8.0V total
+### **NVIDIA Jetson Nano Orin Bağlantı**
 
-Tahmini Akım Tüketimi (Normal Çalışma):
-┌─────────────────────────────────┐
-│ Bekleme: 40-50mA (ESP32 sleep)  │
-│ Normal: 120-180mA (RF working)  │
-│ Peak: 400-500mA (TX moment)     │
-└─────────────────────────────────┘
+| Jetson Pin | Fonksiyon | Orange Cube Bağlantısı |
+|------------|-----------|----------------------|
+| UART1_RX | MAVLink In | Orange Cube TELEM1 TX |
+| UART1_TX | MAVLink Out | Orange Cube TELEM1 RX |
+| GND | Ground | Orange Cube GND |
+| 5V Power | Besleme | External PSU (25W) |
 
-Pil Ömrü Hesaplaması (AA Alkaline: ~2000mAh):
-- Hafif kullanım: 2000mAh / 100mA = 20 saat
-- Normal kullanım: 2000mAh / 150mA = 13 saat  
-- Ağır kullanım: 2000mAh / 250mA = 8 saat
-- Peak nöbeti: 2000mAh / 400mA = 5 saat
+**Jetson Nano Orin Özellikleri:**
+- Quad-core ARM Cortex-A78AE (3.5GHz)
+- 8GB LPDDR5 RAM
+- 128-bit 204GB/s memory bandwidth
+- 6 TOPS AI performance (INT8)
+- ROS2, TensorFlow, PyTorch destekleri
+- USB 3.1 x2 + USB 2.0 x4
+- Gigabit Ethernet
+- 25W max power consumption
 
-Konverter Spesifikasyonları (XL6009):
-┌──────────────────────────────────────────┐
-│ Model: XL6009 Step-Down Buck Converter   │
-│ Input: 5V-32V (12V nominal)              │
-│ Output: 3.3V (ayarlanabilir)             │
-│ Max Current: 2A                          │
-│ Efficiency: ~92%                         │
-│ Frequency: 180-400kHz                    │
-└──────────────────────────────────────────┘
+**İletişim Protokolü:**
+- Orange Cube ↔ Jetson: MAVLink 2.0 (100Hz telemetry)
+- Jetson ↔ Orange Cube: Komut gönderimi (waypoint, mode switch)
 
-Feedback Direnç Ayarlaması (R1, R2):
-- Vout = 0.8V × (1 + R1/R2)
-- 3.3V istiyorsak: R1/R2 = 3.125
+---
 
-Önerilen Konfigürasyon:
-┌────────────────────────────┐
-│ R1 = 10kΩ (Vin tarafında)  │
-│ R2 = 3.3kΩ (GND'ye)        │
-│ Vout = 3.33V ±1%           │
-│ Potansiyometre: 5kΩ (ince) │
-└────────────────────────────┘
-
-Devre Bağlantısı:
-- Vin = +12V pil
-- GND = Pil GND
-- Vout = 3.3V (ESP32, SX1280, OLED)
-- FB pin = R1 ve R2'nin verişme noktası
-```
-```
-
-### İHA Alıcısı (RX)
+## 🔋 TX Beslemesi - 8x AA Alkaline (12V)
 
 ```
 8x AA Alkaline Batarya (12V nominal)
     ↓
-[Step-down Konverter: 12V → 5V/3.3V]
+[XL6009 Step-Down: 12V → 3.3V]
     ├─→ ESP32-S3 (3.3V @ 500mA)
     ├─→ SX1280 RF Modülü (3.3V @ 300mA peak)
-    └─→ 7x Servo Motor Driver (PWM sinyali)
+    ├─→ OLED Ekran (3.3V @ 20mA)
+    ├─→ Joystickler & Trim (3.3V @ 10mA)
+    └─→ Anahtarlar (3.3V @ 5mA)
 
-⚠️ ÖNEMLİ: Servo motorları doğrudan 12V pil kutusundan 
-          beslenmelidir! Step-down sadece kontrol bilgisayarı için.
-
-Servo Power Budget:
-- Per servo: ~100-300mA (hızlıca hareket ederken)
-- 7 servo peak: ~2000mA toplam
-- Step-down: Sadece ESP32 + SX1280 lojik beslemesi
+Tahmini Pil Ömrü: 13 saat (normal), 8 saat (ağır)
 ```
 
 ---
 
-## 🔧 Voltaj Bölücü Kalibrasyonu (Battery Sensing - 12V Sistem)
-
-8x AA Alkaline pil sisteminde maksimum **12V** voltaj gelir. ESP32-S3 ADC maksimum **3.3V** giriş kabul eder.
-
-**Voltage Divider Devresi:**
-
-```
-        12V (Pil Max)
-          │
-          ├─[R1: 27kΩ]─┬─ GPIO8 (ADC)
-          │            │
-          └─[R2: 10kΩ]─┤
-          │            │
-         GND           GND
-
-Bölme Oranı: R2 / (R1 + R2) = 10k / 37k = 0.270
-ADC Giriş: V_ADC = V_BATT × 0.270 = 12V × 0.270 = 3.24V ✓
-
-Gerçek Voltaj Hesaplaması:
-- V_BATT = V_ADC / 0.270
-- V_BATT = V_ADC × 3.636 (VOLTAGE_DIVIDER = 3.64)
+## 📡 Haberleşme Mimarisi (RX Tarafı)
 
 Kalibrasyon Tablosu:
 | Pil Voltajı | V_ADC | ADC Okuma |
@@ -367,7 +279,34 @@ Güvenlik Notu:
 
 ---
 
-## 📊 İletişim Protokolü Özeti
+## � Haberleşme Mimarisi (RX Tarafı)
+
+### 3-Bileşen RF Kumanda Sistemi
+
+```
+KUMANDA (TX)                        UÇAK (RX)
+═════════════════════════════════════════════════════════════
+
+ESP32-S3                           Orange Cube (Pixhawk 4)
+├─ SX1280 ──[2.4GHz RF]─────────→  \
+└─ OLED                             ├─ SBUS IN ← ESP32-S3
+                                    ├─ 14x PWM Servo OUT
+                                    └─ MAVLink ← Jetson Orin
+                                    
+                                    Jetson Nano Orin
+                                    └─ Vision/AI Compute
+```
+
+**Haberleşme Akışı:**
+1. TX kumanda: 2 Joystick + 3 Trim pot + 2 switch → ESP32 TX
+2. ESP32 TX: SX1280 ile 2.4GHz RF paketleri gönderir (50Hz)
+3. ESP32 RX: SX1280 ile RF paketleri alır → SBUS protokolü oluştur
+4. Orange Cube: SBUS sinyali → 14x PWM servo çıkışı
+5. Jetson Nano: Orange Cube'dan MAVLink telemetri (opsiyonel)
+
+---
+
+## 🔌 SBUS Protokolü (ESP32-RX → Orange Cube)
 
 | Parametre | Değer | Açıklama |
 |-----------|-------|----------|
