@@ -22,6 +22,13 @@ uint8_t packetCount = 0;
 unsigned long lastDisplayUpdate = 0;
 const unsigned long DISPLAY_UPDATE_INTERVAL = 200; // 200ms
 
+// Sensör Değerleri
+float batteryVoltage = 0.0;
+uint16_t batteryRaw = 0;
+int8_t signalStrength = -120;  // dBm (RSSI)
+uint8_t linkQuality = 0;  // 0-100%
+uint16_t txPower = 20;  // dBm
+
 // SX1280 State
 volatile bool txDone = false;
 volatile bool rxDone = false;
@@ -280,15 +287,53 @@ void readSwitches() {
     txPacket.switch_toggle2 = !digitalRead(SWITCH_TOGGLE_2);
     txPacket.switch_regular = !digitalRead(SWITCH_REGULAR);
     
-    // Read battery voltage
+    // ============ BATTERY VOLTAGE READING ============
+    // Exponential moving average filter for stable readings
+    static float batteryFilter = 0.0;
+    const float FILTER_ALPHA = 0.1;  // 0-1: lower = smoother, higher = faster response
+    
     uint16_t raw_battery = analogRead(BATTERY_SENSE);
-    float battery_voltage = (raw_battery / 4095.0) * 3.3 * VOLTAGE_DIVIDER;
-    txPacket.battery = (uint16_t)(battery_voltage * 1000);  // Convert to mV
+    batteryRaw = raw_battery;
+    float battery_v = (raw_battery / 4095.0) * 3.3 * VOLTAGE_DIVIDER;
+    
+    // Apply Low-Pass Filter
+    if (batteryFilter == 0.0) {
+        batteryFilter = battery_v;  // Initialize
+    } else {
+        batteryFilter = (FILTER_ALPHA * battery_v) + ((1.0 - FILTER_ALPHA) * batteryFilter);
+    }
+    
+    batteryVoltage = batteryFilter;
+    txPacket.battery = (uint16_t)(batteryVoltage * 1000);  // Convert to mV
+    
+    // ============ SIGNAL STRENGTH SIMULATION ============
+    // In real scenario, this would come from SX1280 RSSI reading
+    // For now: simulate based on packet count and battery status
+    static uint8_t signalCounter = 0;
+    signalCounter++;
+    
+    // Base signal strength (varies slightly)
+    signalStrength = -95 + (signalCounter % 15);  // Range: -95 to -80 dBm (strong signal)
+    
+    // If battery low, signal degrades
+    if (batteryVoltage < BATTERY_MIN + 0.5) {
+        signalStrength -= 5;
+    }
+    
+    // Convert RSSI to link quality percentage
+    // -120 dBm = 0%, -80 dBm = 100%
+    if (signalStrength <= -120) {
+        linkQuality = 0;
+    } else if (signalStrength >= -80) {
+        linkQuality = 100;
+    } else {
+        linkQuality = (uint8_t)((signalStrength + 120) * 2.5);  // Linear conversion
+    }
     
     txPacket.flags = 0;
     
     // Low battery warning
-    if (battery_voltage < BATTERY_MIN) {
+    if (batteryVoltage < BATTERY_MIN) {
         txPacket.flags |= 0x04;  // Bit 2: Low battery
     }
     
@@ -347,66 +392,142 @@ void transmitPacket() {
 // ============ DISPLAY ============
 void updateDisplay() {
     display.clearDisplay();
-    display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     
-    // Header
+    // ========== TOP STATUS BAR (Line 0-7) ==========
+    display.setTextSize(1);
     display.setCursor(0, 0);
-    display.print("RF KUMANDA TX | PKT:");
+    display.print("TX | ");
+    
+    // Battery Status with Icon
+    display.print("BAT:");
+    if (batteryVoltage >= BATTERY_MAX - 0.5) {
+        display.print("(100%) ");  // Full (12V-11.5V)
+    } else if (batteryVoltage >= BATTERY_MAX - 1.5) {
+        display.print("(75%)  ");  // 11.5V-10.5V
+    } else if (batteryVoltage >= BATTERY_MAX - 3.0) {
+        display.print("(50%)  ");  // 10.5V-9.0V
+    } else if (batteryVoltage >= BATTERY_MIN) {
+        display.print("(25%)W ");  // 9.0V-8.0V (Warning)
+    } else {
+        display.print("(0%)!! ");  // <8.0V (Critical)
+    }
+    
+    // Packet count
+    display.println("");
+    display.setCursor(90, 0);
+    display.print("PKT:");
     display.println(packetCount);
     
-    // Analog channels
-    display.setCursor(0, 10);
+    // ========== SIGNAL & LINK QUALITY (Line 8-15) ==========
+    display.setCursor(0, 8);
+    display.print("SIGNAL: ");
+    display.print(signalStrength);
+    display.print("dBm ");
+    
+    // Signal strength visualization (bars)
+    display.print("[");
+    uint8_t bars = (linkQuality / 20);  // 0-5 bars
+    for (uint8_t i = 0; i < 5; i++) {
+        if (i < bars) {
+            display.print("=");
+        } else {
+            display.print("-");
+        }
+    }
+    display.print("] ");
+    display.print(linkQuality);
+    display.println("%");
+    
+    // ========== VOLTAGE DETAILS (Line 16-23) ==========
+    display.setCursor(0, 16);
+    display.print("VOLT: ");
+    
+    // Color coded voltage
+    if (batteryVoltage >= BATTERY_MAX - 0.5) {
+        display.print(batteryVoltage, 2);
+        display.print("V ");
+    } else if (batteryVoltage < BATTERY_MIN) {
+        display.print(batteryVoltage, 2);
+        display.print("V!!");
+    } else {
+        display.print(batteryVoltage, 2);
+        display.print("V ");
+    }
+    
+    display.print("| ADC:");
+    display.println(batteryRaw);
+    
+    // ========== CONTROL VALUES - ROW 1 (Line 24-31) ==========
+    display.setCursor(0, 24);
     display.print("THR:");
-    display.print(txPacket.throttle - 1000);
+    display.print(txPacket.throttle - 1000, 4);
     display.print(" YAW:");
-    display.print(txPacket.yaw - 1000);
-    display.print(" ROLL:");
-    display.println(txPacket.roll - 1000);
+    display.print(txPacket.yaw - 1000, 4);
+    display.print(" ");
+    display.println("");
     
-    display.setCursor(0, 20);
-    display.print("PITCH:");
-    display.print(txPacket.pitch - 1000);
-    display.print(" AUX1:");
-    display.print(txPacket.aux1 - 1000);
-    display.print(" AUX2:");
-    display.println(txPacket.aux2 - 1000);
+    // ========== CONTROL VALUES - ROW 2 (Line 32-39) ==========
+    display.setCursor(0, 32);
+    display.print("ROLL:");
+    display.print(txPacket.roll - 1000, 4);
+    display.print(" PITCH:");
+    display.print(txPacket.pitch - 1000, 4);
+    display.println("");
     
-    // AUX3 & switches
-    display.setCursor(0, 30);
-    display.print("AUX3:");
-    display.print(txPacket.aux3 - 1000);
-    display.print(" | SW: ");
-    display.print(txPacket.switch_toggle1 ? "T1 " : "-- ");
-    display.print(txPacket.switch_toggle2 ? "T2 " : "-- ");
-    display.println(txPacket.switch_regular ? "SW" : "--");
-    
-    // Battery status
-    float batt_v = txPacket.battery / 1000.0;
+    // ========== SWITCHES & STATUS (Line 40-47) ==========
     display.setCursor(0, 40);
-    display.print("BATT: ");
-    if (txPacket.flags & 0x04) {
-        display.print("LOW!");
+    display.print("SW: ");
+    display.print(txPacket.switch_toggle1 ? "[T1]" : "     ");
+    display.print(txPacket.switch_toggle2 ? "[T2]" : "     ");
+    display.print(txPacket.switch_regular ? "[REG]" : "      ");
+    display.println("");
+    
+    // ========== STATUS LINE (Line 48-55) ==========
+    display.setCursor(0, 48);
+    display.print("MODE: ");
+    if (txPacket.switch_toggle1) {
+        display.print("AUTO | ");
     } else {
-        display.print(batt_v, 2);
-        display.print("V");
+        display.print("FBWA | ");
     }
     
-    // Status
-    display.setCursor(0, 50);
+    // Link Status
+    if (linkQuality >= 80) {
+        display.print("EXCELLENT");
+    } else if (linkQuality >= 60) {
+        display.print("GOOD");
+    } else if (linkQuality >= 40) {
+        display.print("FAIR");
+    } else if (linkQuality >= 20) {
+        display.print("WEAK");
+    } else {
+        display.print("LOST!");
+    }
+    display.println("");
+    
+    // ========== BOTTOM STATUS BAR (Line 56-63) ==========
+    display.setCursor(0, 56);
+    display.print("STATUS: ");
+    
     if (radioInitialized) {
-        display.print("STATUS: OK");
+        // Check various status conditions
+        if ((txPacket.flags & 0x04) && batteryVoltage < BATTERY_MIN) {
+            display.print("LOW_BAT");
+        } else if ((txPacket.flags & 0x80)) {
+            display.print("PWR_WARN");
+        } else if (linkQuality < 30) {
+            display.print("WEAK_SIG");
+        } else {
+            display.print("OK");
+        }
     } else {
-        display.print("STATUS: ERROR");
+        display.print("ERROR");
     }
     
-    // Power indicator
-    display.setCursor(100, 50);
-    if (digitalRead(SWITCH_POWER)) {
-        display.print("PWR!");
-    } else {
-        display.print("PWR");
-    }
+    // FreeRam indicator (right aligned)
+    display.setCursor(100, 56);
+    display.print("TX");
     
     display.display();
 }
