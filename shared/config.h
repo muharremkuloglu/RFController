@@ -71,11 +71,32 @@
 // ============ RX STATUS LED ============
 #define STATUS_LED           15     // Status LED
 
-// ============ FREKANS VE PARAMETERLER ============
-#define FREQUENCY    2400   // MHz (2.4 GHz)
-#define TX_POWER     20     // dBm (+20 dBm max for SX1280 PA+LNA)
-#define BANDWIDTH    812    // KHz
-#define SPREADING    7      // Spreading Factor
+// ============ FREKANS VE RF PARAMETRELERI ============
+// SX1280 Frekans Aralığı: 2.400 - 2.500 GHz (ISM Band)
+// ⚠️ AYARLANABILIR - 2.400 ile 2.500 arasında değerle
+#define FREQUENCY_MIN        2400   // Minimum: 2.400 GHz (Bluetooth start)
+#define FREQUENCY_MAX        2500   // Maksimum: 2.500 GHz (limit)
+#define FREQUENCY_DEFAULT    2440   // Default: 2.440 GHz (WiFi channel 6 avoid)
+#define FREQUENCY            FREQUENCY_DEFAULT  // Çalışan frekans
+
+// TX Power: +20 dBm (100mW) maksimum PA+LNA ile
+#define TX_POWER_DBM         20     // dBm (adjustable 0-20 range)
+#define TX_POWER_MIN_DBM     0      // Minimum: 0 dBm (1mW)
+#define TX_POWER_MAX_DBM     20     // Maksimum: 20 dBm (100mW)
+// Backwards compatibility (eski kod için)
+#define TX_POWER             TX_POWER_DBM
+
+// Bandwidth: 812 kHz orta genişlik
+#define BANDWIDTH            812    // KHz (SX1280 standard)
+
+// Spreading Factor: SF7 speed-range trade-off
+// SF7 = ~2ms TX time, ~500m range, ~20.97dB margin @ 500m
+#define SPREADING            7      // SF7 (configurable SF5-SF12)
+
+// Link Budget Parametreleri (dB)
+#define RX_SENSITIVITY       -98    // -98 dBm @ SF7, 812kHz BW
+#define FADE_MARGIN          10     // 10dB practical reserve
+#define CABLE_LOSS           3      // 3dB antenna/cable loss
 
 // ============ ADC KALİBRASYONU ============
 #define ADC_MIN      0      // Joystick/Pot minimum

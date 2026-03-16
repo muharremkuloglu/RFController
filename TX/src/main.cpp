@@ -122,6 +122,36 @@ void sx1280_set_tx_power(int8_t power);
 void sx1280_start_tx();
 void sx1280_wait_ready();
 
+// RF LINK BUDGET FONKSİYONLARI (link_budget.cpp)
+/// RF haberleşme paametresine yol kaybı hesapla (Friis denklemi)
+/// @param freq_mhz: Frekans (MHz)
+/// @param distance_km: Mesafe (km)
+/// @return Path Loss (dB)
+float calculatePathLoss(uint32_t freq_mhz, float distance_km);
+
+/// Teorik maksimum menzili hesapla
+/// @param tx_power_dbm: TX gücü (dBm)
+/// @param freq_mhz: Frekans (MHz)
+/// @param rx_sensitivity_dbm: RX hassasiyeti (dBm)
+/// @param fade_margin_db: Güvenlik marjı (dB), default 10dB
+/// @return Maksimum menzil (meter)
+float calculateTheoreticalRange(float tx_power_dbm, uint32_t freq_mhz, 
+                               float rx_sensitivity_dbm, float fade_margin_db = 10.0);
+
+/// TX haberleşme parametrelerini seri'ye yazdır
+/// @param tx_power_dbm: TX gücü (dBm)
+/// @param freq_mhz: Frekans (MHz)
+void printTxLinkBudget(float tx_power_dbm, uint32_t freq_mhz);
+
+/// Frekansı insan tarafından okunur formata çevir (GHz cinsinden)
+const char* freqToString(uint32_t freq_mhz);
+
+/// dBm'den milliwatt'a çevir
+float txPowerToMw(float dbm);
+
+/// RSSI değerinden haberleşme kalitesini göster (emoji + durum metni)
+const char* displayLinkQuality(int8_t rssi_dbm);
+
 // ============ SETUP & LOOP ============
 void setup() {
     Serial.begin(115200);
@@ -156,6 +186,10 @@ void setup() {
     
     if (radioInitialized) {
         Serial.println("[6/6] ✓ HAZIR!\n");
+        
+        // TX Haberleşme parametrelerini göster
+        printTxLinkBudget(TX_POWER_DBM, FREQUENCY_DEFAULT);
+        
         display.clearDisplay();
         display.setTextSize(2);
         display.setTextColor(SSD1306_WHITE);
@@ -231,7 +265,7 @@ void initADC() {
     pinMode(POT_AUX3, INPUT);
     pinMode(BATTERY_SENSE, INPUT);
     
-    analogSetWidth(12);  // 12-bit resolution
+    analogReadResolution(12);  // 12-bit ADC resolution (ESP32-S3)
     Serial.println("✓ ADC hazır (7 Pot + Battery)");
 }
 
@@ -720,20 +754,6 @@ void initSPI() {
     Serial.println("SPI hazır");
 }
 
-// ============ ADC İNİSİYALİZASYON ============
-void initADC() {
-    Serial.println("ADC başlatılıyor...");
-    
-    pinMode(POT_THROTTLE, INPUT);
-    pinMode(POT_YAW, INPUT);
-    pinMode(POT_ROLL, INPUT);
-    pinMode(POT_PITCH, INPUT);
-    pinMode(POT_AUX1, INPUT);
-    pinMode(POT_AUX2, INPUT);
-    pinMode(POT_AUX3, INPUT);
-    
-    Serial.println("ADC hazır");
-}
 
 // ============ EKRAN İNİSİYALİZASYON ============
 void initDisplay() {

@@ -125,13 +125,22 @@ void transmitFailsafe();
 void sx1280_spi_write(uint8_t cmd, uint8_t *data, uint8_t len);
 void sx1280_spi_read(uint8_t cmd, uint8_t *data, uint8_t len);
 void sx1280_reset();
-void sx1280_set_frequency(uint32_t freq);
+void sx1280_set_frequency(uint32_t freq);  // Frekans ayarla (2400-2500 MHz)
 void sx1280_set_rx_params(uint16_t timeout);
 void sx1280_start_rx();
 void sx1280_wait_ready();
 uint8_t sx1280_read_irq_status();
 void processReceivedData();
 void blinkStatusLed();
+
+// ============ RF LINK BUDGET HESAPLAMA FONKSİYONLARI ============
+// Friis Path Loss Denklemi ile haberleşme analizi
+float calculatePathLoss(uint32_t freq_mhz, float distance_km);     // Path Loss (dB)
+float calculateRxPower(float tx_power_dbm, float path_loss_db);   // RX Power (dBm)
+float calculateSNR(float rx_power_dbm, float rx_sensitivity_dbm); // SNR (dB)
+float calculateFadeMargin(float snr_db);                          // Fade Margin (dB)
+void printLinkBudget(uint32_t freq_mhz, float distance_km);       // Debug output
+bool setFrequency(uint32_t freq_mhz);                             // Frekans güvenli set
 
 // ============ SETUP & LOOP ============
 void setup() {
@@ -165,6 +174,10 @@ void setup() {
     
     if (radioInitialized) {
         Serial.println("[5/5] ✓ HAZIR!\n");
+        
+        // RX Haberleşme parametrelerini göster
+        printLinkBudget(FREQUENCY_DEFAULT, 0.5);  // 500m mesafede göster
+        
         delay(1000);
     } else {
         Serial.println("[5/5] ✗ Hata: Radio başlatılamadı!\n");
